@@ -8,6 +8,7 @@ class UserViewModel extends ChangeNotifier {
   String get errorMessage => _errorMessage;
   bool _isLoading = false;
   bool get isLoading => _isLoading;
+  String _username = '';
   String _email = '';
   String get email => _email;
 
@@ -16,13 +17,7 @@ class UserViewModel extends ChangeNotifier {
   }
 
   Future<void> _checkLoginStatus() async {
-    final user = await DatabaseHelper().getUser();
-    if (user != null) {
-      _isLoggedIn = true;
-      _email = user['email'] ?? '';
-    } else {
-      _isLoggedIn = false;
-    }
+    // Check if a user is logged in
     notifyListeners();
   }
 
@@ -30,9 +25,10 @@ class UserViewModel extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    final user = await DatabaseHelper().getUser();
-    if (user != null && user['email'] == email && user['password'] == password) {
+    final user = await DatabaseHelper().getUser(email);
+    if (user != null && user['password'] == password) {
       _isLoggedIn = true;
+      _username = user['username'] ?? '';
       _email = email;
       _errorMessage = '';
     } else {
@@ -48,27 +44,33 @@ class UserViewModel extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    // Just change the login status, don't delete the user
     _isLoggedIn = false;
+    _username = '';
     _email = '';
 
     _isLoading = false;
     notifyListeners();
   }
 
-  Future<void> register(String email, String password) async {
+  Future<void> register(String username, String email, String password) async {
     _isLoading = true;
     notifyListeners();
 
-    await DatabaseHelper().saveUser(email, password);
-    final user = await DatabaseHelper().getUser();
-    if (user != null && user['email'] == email && user['password'] == password) {
-      _isLoggedIn = true;
-      _email = email;
-      _errorMessage = '';
+    final existingUser = await DatabaseHelper().getUser(email);
+    if (existingUser == null) {
+      try {
+        await DatabaseHelper().saveUser(username, email, password);
+        _isLoggedIn = true;
+        _username = username;
+        _email = email;
+        _errorMessage = '';
+      } catch (e) {
+        _isLoggedIn = false;
+        _errorMessage = 'Failed to save user: $e';
+      }
     } else {
       _isLoggedIn = false;
-      _errorMessage = 'Registration failed';
+      _errorMessage = 'User already exists with this email';
     }
 
     _isLoading = false;

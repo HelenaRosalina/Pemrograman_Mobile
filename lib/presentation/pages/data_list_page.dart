@@ -68,6 +68,7 @@ class _DataListPageState extends State<DataListPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false, // Menghilangkan tombol kembali
         title: Text('Recipes List'),
         actions: [
           IconButton(

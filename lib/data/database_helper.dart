@@ -22,8 +22,9 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2, // Increment the version number
       onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
     );
   }
 
@@ -31,35 +32,48 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE users(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        email TEXT NOT NULL,
+        username TEXT NOT NULL,
+        email TEXT NOT NULL UNIQUE,
         password TEXT NOT NULL
       )
     ''');
   }
 
-  Future<void> saveUser(String email, String password) async {
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('ALTER TABLE users ADD COLUMN username TEXT');
+    }
+  }
+
+  Future<void> saveUser(String username, String email, String password) async {
     final db = await database;
     await db.insert(
       'users',
-      {'email': email, 'password': password},
-      conflictAlgorithm: ConflictAlgorithm.replace,
+      {'username': username, 'email': email, 'password': password},
+      conflictAlgorithm: ConflictAlgorithm.abort, // Prevents inserting duplicate emails
     );
   }
 
-  Future<Map<String, String>?> getUser() async {
+  Future<Map<String, String>?> getUser(String email) async {
     final db = await database;
-    final List<Map<String, dynamic>> maps = await db.query('users');
+    final List<Map<String, dynamic>> maps = await db.query(
+      'users',
+      where: 'email = ?',
+      whereArgs: [email],
+    );
 
     if (maps.isNotEmpty) {
       return {
-        'email': maps.first['email'],
-        'password': maps.first['password'],
+        'username': maps.first['username'] ?? '',
+        'email': maps.first['email'] ?? '',
+        'password': maps.first['password'] ?? '',
       };
     }
     return null;
   }
 
-  Future<void> logout() async {
-    // Not deleting the user from the database to keep the user info
+  Future<List<Map<String, dynamic>>> getAllUsers() async {
+    final db = await database;
+    return await db.query('users');
   }
 }

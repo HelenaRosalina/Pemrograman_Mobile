@@ -21,7 +21,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
         return;
       }
       Provider.of<UserViewModel>(context, listen: false)
-          .register(_emailController.text, _passwordController.text)
+          .register(_usernameController.text, _emailController.text, _passwordController.text)
           .then((_) {
         if (Provider.of<UserViewModel>(context, listen: false).isLoggedIn) {
           Navigator.pushReplacementNamed(context, '/list');
