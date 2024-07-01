@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class Recipe {
   final String title;
   final String image;
@@ -47,15 +49,27 @@ class Recipe {
     );
   }
 
-  Map<String, dynamic> toJson() {
+  Map<String, dynamic> toMap() {
     return {
       'title': title,
       'image': image,
       'summary': summary,
-      'extendedIngredients': ingredients,
+      'ingredients': jsonEncode(ingredients),
       'sourceName': sourceName,
-      'healthInfo': healthInfo,
-      'instructions': instructions,
+      'healthInfo': jsonEncode(healthInfo),
+      'instructions': jsonEncode(instructions),
     };
+  }
+
+  factory Recipe.fromMap(Map<String, dynamic> map) {
+    return Recipe(
+      title: map['title'] ?? '',
+      image: map['image'] ?? '',
+      summary: map['summary'] ?? '',
+      ingredients: List<String>.from(jsonDecode(map['ingredients']) ?? []),
+      sourceName: map['sourceName'] ?? '',
+      healthInfo: Map<String, bool>.from(jsonDecode(map['healthInfo']) ?? {}),
+      instructions: List<String>.from(jsonDecode(map['instructions']) ?? []),
+    );
   }
 }

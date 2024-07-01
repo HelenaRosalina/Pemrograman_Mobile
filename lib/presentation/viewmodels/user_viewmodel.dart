@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:taste_guide/data/local_storage.dart';
+import 'package:taste_guide/data/database_helper.dart';
 
 class UserViewModel extends ChangeNotifier {
   bool _isLoggedIn = false;
@@ -16,10 +16,12 @@ class UserViewModel extends ChangeNotifier {
   }
 
   Future<void> _checkLoginStatus() async {
-    _isLoggedIn = await LocalStorage.isUserLoggedIn();
-    if (_isLoggedIn) {
-      final user = await LocalStorage.getUser();
+    final user = await DatabaseHelper().getUser();
+    if (user != null) {
+      _isLoggedIn = true;
       _email = user['email'] ?? '';
+    } else {
+      _isLoggedIn = false;
     }
     notifyListeners();
   }
@@ -28,8 +30,8 @@ class UserViewModel extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    final user = await LocalStorage.getUser();
-    if (user['email'] == email && user['password'] == password) {
+    final user = await DatabaseHelper().getUser();
+    if (user != null && user['email'] == email && user['password'] == password) {
       _isLoggedIn = true;
       _email = email;
       _errorMessage = '';
@@ -43,9 +45,14 @@ class UserViewModel extends ChangeNotifier {
   }
 
   Future<void> logout() async {
-    await LocalStorage.logout();
+    _isLoading = true;
+    notifyListeners();
+
+    // Just change the login status, don't delete the user
     _isLoggedIn = false;
     _email = '';
+
+    _isLoading = false;
     notifyListeners();
   }
 
@@ -53,10 +60,16 @@ class UserViewModel extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    await LocalStorage.saveUser(email, password);
-    _isLoggedIn = true;
-    _email = email;
-    _errorMessage = '';
+    await DatabaseHelper().saveUser(email, password);
+    final user = await DatabaseHelper().getUser();
+    if (user != null && user['email'] == email && user['password'] == password) {
+      _isLoggedIn = true;
+      _email = email;
+      _errorMessage = '';
+    } else {
+      _isLoggedIn = false;
+      _errorMessage = 'Registration failed';
+    }
 
     _isLoading = false;
     notifyListeners();
